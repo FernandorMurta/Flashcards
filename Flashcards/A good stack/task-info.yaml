@@ -1,0 +1,82 @@
+type: edu
+custom_name: stage4
+files:
+- name: test/common/DialogClue.kt
+  visible: false
+  learner_created: false
+- name: test/FlashcardsTest.java
+  visible: false
+  learner_created: false
+- name: src/flashcards/Main.java
+  visible: true
+  text: |
+    package flashcards;
+
+    import java.util.ArrayList;
+    import java.util.List;
+    import java.util.Scanner;
+
+    public class Main {
+
+        static class Card {
+            String color;
+            String definition;
+
+            public Card(String color, String definition) {
+                this.color = color;
+                this.definition = definition;
+            }
+
+            public String getColor() {
+                return color;
+            }
+
+            public void setColor(String color) {
+                this.color = color;
+            }
+
+            public String getDefinition() {
+                return definition;
+            }
+
+            public void setDefinition(String definition) {
+                this.definition = definition;
+            }
+        }
+
+        public static void main(String[] args) {
+            List<Card> lista = new ArrayList<>();
+            Scanner scanner = new Scanner(System.in);
+
+
+            System.out.println("Input the number of cards:");
+            int number = scanner.nextInt();
+
+            for (int x = 0; x < number; x++) {
+                Scanner scannerFor = new Scanner(System.in);
+                System.out.println("The card #" + (x + 1));
+                String color = scannerFor.nextLine();
+
+                System.out.println("The definition of the card #" + (x + 1));
+                String definition = scannerFor.nextLine();
+
+                Card card = new Card(color, definition);
+
+                lista.add(card);
+            }
+
+            for (Card card : lista) {
+                Scanner scannerFor = new Scanner(System.in);
+                System.out.println("Print the definition of \"" + card.getColor() + "\":");
+                String definition = scannerFor.nextLine();
+
+                System.out.println(definition.equals(card.getDefinition())
+                        ? "Correct answer."
+                        : "Wrong answer. The correct one is \"" + card.getDefinition() + "\".");
+            }
+        }
+    }
+  learner_created: false
+feedback_link: https://hyperskill.org/projects/44/stages/235/implement
+status: Solved
+record: 4

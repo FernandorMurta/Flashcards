@@ -1,0 +1,358 @@
+type: edu
+custom_name: What’s on the card?
+files:
+- name: test/FlashcardsTest.java
+  visible: false
+  learner_created: false
+- name: src/flashcards/Main.java
+  visible: true
+  text: |
+    package flashcards;
+
+    import java.awt.*;
+    import java.io.File;
+    import java.io.FileNotFoundException;
+    import java.io.FileWriter;
+    import java.io.IOException;
+    import java.util.*;
+    import java.util.List;
+    import java.util.concurrent.atomic.AtomicReference;
+    import java.util.regex.Matcher;
+    import java.util.regex.Pattern;
+    import java.util.stream.Collectors;
+
+    public class Main {
+
+        private static Set<Card> lista = new LinkedHashSet<>();
+        private static HashMap<String, Set<String>> map = new HashMap<>();
+
+        private static Set<String> colorList = new HashSet<>();
+        private static Set<String> definitionList = new HashSet<>();
+
+        private static List<String> listFiles = new ArrayList<>();
+
+        private static class Card {
+            String color;
+            String definition;
+
+            public Card(String color, String definition) {
+                this.color = color;
+                this.definition = definition;
+            }
+
+            public String getColor() {
+                return color;
+            }
+
+            public void setColor(String color) {
+                this.color = color;
+            }
+
+            public String getDefinition() {
+                return definition;
+            }
+
+            public void setDefinition(String definition) {
+                this.definition = definition;
+            }
+        }
+
+        public static void main(String[] args) {
+            actions();
+        }
+
+        private static void actions() {
+            Scanner scanner = new Scanner(System.in);
+
+            System.out.println("Input the action (add, remove, import, export, ask, exit):");
+            String action = scanner.nextLine();
+
+            switch (action) {
+                case "add": {
+                    addCard();
+                    break;
+                }
+
+                case "remove": {
+                    removeCard();
+                    break;
+                }
+
+                case "import": {
+                    importFromFile();
+                    break;
+                }
+
+                case "export": {
+                    exportCards();
+                    break;
+                }
+
+                case "ask": {
+                    askUser();
+                    break;
+                }
+
+                case "exit": {
+                    System.out.println("Bye bye!");
+                    System.exit(0);
+                    break;
+                }
+            }
+        }
+
+
+        private static void addCard() {
+
+            String color = retriveCardValue(map);
+            String definition = retriveDescriptionValue(map);
+
+            Card card = new Card(color, definition);
+            lista.add(card);
+            colorList.add(color);
+            definitionList.add(definition);
+
+            map.put("color", colorList);
+            map.put("definition", definitionList);
+
+            System.out.println("The pair (\"" + color + "\":\"" + definition + "\") has been added.");
+            actions();
+        }
+
+        private static boolean verifyContent(HashMap<String, Set<String>> map, String key, String value) {
+            return map.get(key).contains(value);
+        }
+
+        private static String retriveCardValue(HashMap<String, Set<String>> map) {
+
+            String color = null;
+            System.out.println("The card:");
+            Scanner scannerFor = new Scanner(System.in);
+            color = scannerFor.nextLine();
+
+            if (map.containsKey("color") && verifyContent(map, "color", color)) {
+                System.out.println("The card \"" + color + "\" already exists.");
+                actions();
+            }
+
+            return color;
+        }
+
+        private static String retriveDescriptionValue(HashMap<String, Set<String>> map) {
+
+            String definition = null;
+            System.out.println("The definition of the card :");
+
+            Scanner scannerFor = new Scanner(System.in);
+            definition = scannerFor.nextLine();
+
+            if (map.containsKey("definition") && verifyContent(map, "definition", definition)) {
+                System.out.println("The definition \"" + definition + "\" already exists.");
+                actions();
+            }
+
+            return definition;
+        }
+
+        private static void removeCard() {
+            Scanner scannerFor = new Scanner(System.in);
+            System.out.println("The card:");
+            String cardName = scannerFor.nextLine();
+
+            if (colorList.contains(cardName)) {
+                Card willRemove = lista.stream().filter(card -> card.color.equals(cardName)).collect(Collectors.toList()).get(0);
+                lista.removeIf(card -> card.color.equals(cardName));
+                colorList.remove(willRemove.color);
+                definitionList.remove(willRemove.definition);
+                System.out.println("The card has been removed.");
+            } else {
+                System.out.println("Can't remove \"" + cardName + "\": there is no such card.");
+            }
+
+            actions();
+        }
+
+        private static void importFromFile() {
+            Scanner scannerFor = new Scanner(System.in);
+            System.out.println("File Name:");
+            String fileName = scannerFor.nextLine();
+
+            File file = new File("D:\\Projetos\\Intellij\\training\\src\\com\\company\\" + fileName);
+
+            if (!verifyIsFile(file)) {
+                System.out.println("File not found.");
+                actions();
+            } else {
+                readFile(file);
+                actions();
+            }
+        }
+
+        private static boolean verifyIsFile(File file) {
+            return file.isFile();
+        }
+
+        private static void readFile(File file) {
+            List<String> cardsFromFile = new ArrayList<>();
+            Scanner fileReader;
+            int counter = 0;
+            try {
+                fileReader = new Scanner(file);
+
+                while (fileReader.hasNextLine()) {
+                    cardsFromFile.add(fileReader.nextLine());
+                    counter++;
+                }
+
+                updateCards(cardsFromFile);
+            } catch (FileNotFoundException fnf) {
+                System.out.println(fnf.getMessage());
+            }
+            System.out.println(counter + " cards have been loaded.");
+        }
+
+        private static void updateCards(List<String> newCards) {
+            newCards.forEach(Main::catchCardName);
+        }
+
+        private static void catchCardName(String text) {
+            Pattern pattern = Pattern.compile("\"(\\w+\\s*\\w*)\"\\s*:\\s*\"(\\w+\\s*\\w*)\"");
+            Matcher matcher = pattern.matcher(text);
+
+            if (matcher.find()) {
+                String cardName = matcher.group(1);
+                String definitionCard = matcher.group(2);
+
+                Card newCard = new Card(cardName, definitionCard);
+
+                if (colorList.contains(cardName)) {
+                    AtomicReference<String> oldDefinition = new AtomicReference<>();
+                    lista.forEach(element -> {
+                        if (element.color.equals(cardName)) {
+                            oldDefinition.set(element.definition);
+                            element.definition = definitionCard;
+                        }
+                    });
+
+                    definitionList.remove(oldDefinition.get());
+                    definitionList.add(definitionCard);
+
+                } else {
+                    lista.add(newCard);
+                    colorList.add(cardName);
+                    definitionList.add(definitionCard);
+                }
+                map.put("color", colorList);
+                map.put("definition", definitionList);
+            }
+        }
+
+        private static void exportCards() {
+            Scanner scannerFor = new Scanner(System.in);
+            System.out.println("File Name:");
+            String fileName = scannerFor.nextLine();
+            fileName = fileName.contains(".txt") ? fileName : fileName + ".txt";
+
+            File file = new File("D:\\Projetos\\Intellij\\training\\src\\com\\company\\" + fileName);
+            try {
+                if (!file.isFile()) {
+                    boolean createFile = file.createNewFile();
+
+                    if (createFile) {
+                        canWrite(file);
+                    }
+                } else {
+                    canWrite(file);
+                }
+
+            } catch (IOException ioe) {
+                System.out.println(ioe.getMessage());
+            }
+        }
+
+        private static void canWrite(File file) {
+            if (file.canWrite()) {
+                writeFile(file);
+            }
+        }
+
+        private static void writeFile(File file) {
+            try {
+                FileWriter fileWriter = new FileWriter(file);
+                lista.forEach(card -> {
+                    try {
+                        fileWriter.write(createLine(card));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+
+                fileWriter.close();
+                System.out.println(lista.size() + " cards have been saved.");
+
+                listFiles.add(file.getName());
+                actions();
+            } catch (IOException ioe) {
+                System.out.println(ioe.getMessage());
+            }
+        }
+
+        private static String createLine(Card card) {
+            return "(\"" + card.color + "\" : \"" + card.definition + "\") \n";
+        }
+
+        private static void askUser() {
+            List<Card> askList = new ArrayList<>(lista);
+            Scanner scannerFor = new Scanner(System.in);
+            System.out.println("How many times to ask?");
+            int qtd = scannerFor.nextInt();
+
+            Random random = new Random();
+
+            for (int x = 0; x < qtd; x++) {
+                Scanner scanner = new Scanner(System.in);
+                Card card = askList.get(random.nextInt(lista.size()));
+                System.out.println("Print the definition of \"" + card.color + "\":");
+                String definition = scanner.nextLine();
+
+                if (definition.equals(card.definition)) {
+                    System.out.println("Correct answer");
+                } else {
+                    if (definitionList.contains(definition)) {
+                        Card name = askList.stream().filter(cardOf ->
+                                cardOf.definition.equals(definition))
+                                .collect(Collectors.toList()).get(0);
+                        System.out.println("Wrong answer. The correct one is \"" + card.definition
+                                + "\", you've just written the definition of \"" + name.getColor() + "\"");
+
+                    } else {
+                        System.out.println("Wrong answer. The correct one is \"" + card.definition + "\".");
+                    }
+
+                }
+            }
+
+            actions();
+        }
+
+        static void verifyAnswer(Card card, String definition, HashMap<String, Set<String>> map, Set<Card> cards) {
+
+            System.out.println(definition.equals(card.getDefinition())
+                    ? "Correct answer."
+                    : buildWrong(card, definition, map, cards));
+        }
+
+        private static String buildWrong(Card correct, String definition, HashMap<String, Set<String>> map, Set<Card> cards) {
+
+            if (map.get("definition").contains(definition)) {
+                Card card = cards.stream().filter(element -> element.definition.equals(definition)).collect(Collectors.toList()).get(0);
+                return "Wrong answer. The correct one is \"" + correct.getDefinition() + "\", you've just written the definition of \"" + card.color + "\".";
+            } else {
+                return "Wrong answer. The correct one is \"" + correct.getDefinition() + "\".";
+            }
+        }
+    }
+  learner_created: false
+feedback_link: https://hyperskill.org/projects/44/stages/233/implement
+status: Solved
+record: 2

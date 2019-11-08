@@ -1,0 +1,552 @@
+type: edu
+custom_name: stage7
+files:
+- name: test/common/DialogClue.kt
+  visible: false
+  learner_created: false
+- name: test/common/FlashcardsStage7Test.kt
+  visible: false
+  learner_created: false
+- name: test/FlashcardsTest.java
+  visible: false
+  learner_created: false
+- name: src/flashcards/Main.java
+  visible: true
+  text: |
+    package flashcards;
+
+    import java.io.File;
+    import java.io.FileNotFoundException;
+    import java.io.FileWriter;
+    import java.io.IOException;
+    import java.util.*;
+    import java.util.List;
+    import java.util.concurrent.atomic.AtomicReference;
+    import java.util.regex.Matcher;
+    import java.util.regex.Pattern;
+    import java.util.stream.Collectors;
+
+    public class Main {
+
+        private static Set<Card> lista = new LinkedHashSet<>();
+        private static HashMap<String, Set<String>> map = new HashMap<>();
+
+        private static Set<String> colorList = new HashSet<>();
+        private static Set<String> definitionList = new HashSet<>();
+
+        private static List<String> listFiles = new ArrayList<>();
+        private static List<String> log = new ArrayList<>();
+
+        private static class Card {
+            String color;
+            String definition;
+            Integer errors;
+
+            public Card(String color, String definition) {
+                this.color = color;
+                this.definition = definition;
+                this.errors = 0;
+            }
+
+            public Card(String color, String definition, Integer errors) {
+                this.color = color;
+                this.definition = definition;
+                this.errors = errors;
+            }
+
+
+            public String getColor() {
+                return color;
+            }
+
+            public void setColor(String color) {
+                this.color = color;
+            }
+
+            public String getDefinition() {
+                return definition;
+            }
+
+            public void setDefinition(String definition) {
+                this.definition = definition;
+            }
+
+            public Integer getErrors() {
+                return errors;
+            }
+
+            public void setErrors(Integer errors) {
+                this.errors = errors;
+            }
+        }
+
+        public static void main(String[] args) {
+            actions();
+        }
+
+        private static void actions() {
+            Scanner scanner = new Scanner(System.in);
+            String logAction = "Input the action (add, remove, import, export, ask, exit, log, hardest card, reset stats):";
+            System.out.println(logAction);
+            log.add(logAction);
+            String action = scanner.nextLine();
+            log.add("> " + action);
+            switch (action) {
+                case "add": {
+                    addCard();
+                    break;
+                }
+
+                case "remove": {
+                    removeCard();
+                    break;
+                }
+
+                case "import": {
+                    importFromFile();
+                    break;
+                }
+
+                case "export": {
+                    exportCards();
+                    break;
+                }
+
+                case "ask": {
+                    askUser();
+                    break;
+                }
+
+                case "hardest card": {
+                    verifyHardest();
+                    break;
+                }
+
+                case "reset stats": {
+                    resetStats();
+                    break;
+                }
+
+                case "log": {
+                    log();
+                    break;
+                }
+
+                case "exit": {
+                    String bye = "Bye bye!";
+                    System.out.println(bye);
+                    log.add(bye);
+                    System.exit(0);
+                    break;
+                }
+            }
+        }
+
+        private static void addCard() {
+
+            String color = retriveCardValue(map);
+            String definition = retriveDescriptionValue(map);
+
+            Card card = new Card(color, definition);
+            lista.add(card);
+            colorList.add(color);
+            definitionList.add(definition);
+
+            map.put("color", colorList);
+            map.put("definition", definitionList);
+
+            String flog = "The pair (\"" + color + "\":\"" + definition + "\") has been added.";
+            System.out.println(flog);
+            log.add(flog);
+            actions();
+        }
+
+        private static boolean verifyContent(HashMap<String, Set<String>> map, String key, String value) {
+            return map.get(key).contains(value);
+        }
+
+        private static String retriveCardValue(HashMap<String, Set<String>> map) {
+
+            String color = null;
+            String soutCard = "The card:";
+            log.add(soutCard);
+            System.out.println(soutCard);
+            Scanner scannerFor = new Scanner(System.in);
+            color = scannerFor.nextLine();
+            log.add("> " + color);
+            if (map.containsKey("color") && verifyContent(map, "color", color)) {
+                String exists = "The card \"" + color + "\" already exists.";
+                System.out.println(exists);
+                log.add(exists);
+                actions();
+            }
+
+            return color;
+        }
+
+        private static String retriveDescriptionValue(HashMap<String, Set<String>> map) {
+
+            String definition = null;
+            String defintionCard = "The definition of the card :";
+            System.out.println(defintionCard);
+            log.add(defintionCard);
+
+            Scanner scannerFor = new Scanner(System.in);
+            definition = scannerFor.nextLine();
+            log.add("> " + definition);
+
+            if (map.containsKey("definition") && verifyContent(map, "definition", definition)) {
+                String definitionOf = "The definition \"" + definition + "\" already exists.";
+                System.out.println(definitionOf);
+                log.add(definitionOf);
+                actions();
+            }
+
+            return definition;
+        }
+
+        private static void removeCard() {
+            Scanner scannerFor = new Scanner(System.in);
+            String removedCard = "The card:";
+            System.out.println(removedCard);
+            log.add(removedCard);
+
+            String cardName = scannerFor.nextLine();
+            log.add("> " + cardName);
+
+            if (colorList.contains(cardName)) {
+                Card willRemove = lista.stream().filter(card -> card.color.equals(cardName)).collect(Collectors.toList()).get(0);
+                lista.removeIf(card -> card.color.equals(cardName));
+                colorList.remove(willRemove.color);
+                definitionList.remove(willRemove.definition);
+                String success = "The card has been removed.";
+                System.out.println(success);
+                log.add(success);
+            } else {
+                String error = "Can't remove \"" + cardName + "\": there is no such card.";
+                System.out.println(error);
+                log.add(error);
+            }
+
+            actions();
+        }
+
+        private static void importFromFile() {
+            Scanner scannerFor = new Scanner(System.in);
+            String fileOut = "File Name:";
+            System.out.println(fileOut);
+            log.add(fileOut);
+            String fileName = scannerFor.nextLine();
+            log.add("> " + fileName);
+
+            File file = new File("D:\\Projetos\\Intellij\\training\\src\\com\\company\\" + fileName);
+
+            if (!verifyIsFile(file)) {
+                String error = "File not found.";
+                System.out.println(error);
+                log.add(error);
+                actions();
+            } else {
+                readFile(file);
+                actions();
+            }
+        }
+
+        private static boolean verifyIsFile(File file) {
+            return file.isFile();
+        }
+
+        private static void readFile(File file) {
+            List<String> cardsFromFile = new ArrayList<>();
+            Scanner fileReader;
+            int counter = 0;
+            try {
+                fileReader = new Scanner(file);
+
+                while (fileReader.hasNextLine()) {
+                    cardsFromFile.add(fileReader.nextLine());
+                    counter++;
+                }
+
+                updateCards(cardsFromFile);
+            } catch (FileNotFoundException fnf) {
+                System.out.println(fnf.getMessage());
+                log.add(fnf.getMessage());
+            }
+            String error = counter + " cards have been loaded.";
+            System.out.println(error);
+            log.add(error);
+        }
+
+        private static void updateCards(List<String> newCards) {
+            newCards.forEach(Main::catchCardName);
+        }
+
+        private static void catchCardName(String text) {
+            Pattern pattern = Pattern.compile("\"(\\w+\\s*\\w*)\"\\s*:\\s*\"(\\w+\\s*\\w*)\"\\s*:\\s*(\\d+)");
+            Matcher matcher = pattern.matcher(text);
+
+            if (matcher.find()) {
+                String cardName = matcher.group(1);
+                String definitionCard = matcher.group(2);
+                Integer errors = Integer.parseInt(matcher.group(3));
+
+                Card newCard = new Card(cardName, definitionCard, errors);
+
+                if (colorList.contains(cardName)) {
+                    AtomicReference<String> oldDefinition = new AtomicReference<>();
+                    lista.forEach(element -> {
+                        if (element.color.equals(cardName)) {
+                            oldDefinition.set(element.definition);
+                            element.definition = definitionCard;
+                        }
+                    });
+
+                    definitionList.remove(oldDefinition.get());
+                    definitionList.add(definitionCard);
+
+                } else {
+                    lista.add(newCard);
+                    colorList.add(cardName);
+                    definitionList.add(definitionCard);
+                }
+                map.put("color", colorList);
+                map.put("definition", definitionList);
+            }
+        }
+
+        private static void exportCards() {
+            Scanner scannerFor = new Scanner(System.in);
+            String flog = "File Name:";
+            System.out.println(flog);
+            log.add(flog);
+            String fileName = scannerFor.nextLine();
+            log.add("> " + flog);
+            fileName = fileName.contains(".txt") ? fileName : fileName + ".txt";
+
+            File file = new File("D:\\Projetos\\Intellij\\training\\src\\com\\company\\" + fileName);
+            try {
+                if (!file.isFile()) {
+                    boolean createFile = file.createNewFile();
+
+                    if (createFile) {
+                        canWrite(file);
+                    }
+                } else {
+                    canWrite(file);
+                }
+
+            } catch (IOException ioe) {
+                System.out.println(ioe.getMessage());
+                log.add(ioe.getMessage());
+            }
+        }
+
+        private static void canWrite(File file) {
+            if (file.canWrite()) {
+                writeFile(file);
+            }
+        }
+
+        private static void writeFile(File file) {
+            try {
+                FileWriter fileWriter = new FileWriter(file);
+                lista.forEach(card -> {
+                    try {
+                        fileWriter.write(createLine(card));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+
+                fileWriter.close();
+                String flog = lista.size() + " cards have been saved.";
+                System.out.println(flog);
+                log.add(flog);
+
+                listFiles.add(file.getName());
+                actions();
+            } catch (IOException ioe) {
+                System.out.println(ioe.getMessage());
+            }
+        }
+
+        private static String createLine(Card card) {
+            return "(\"" + card.color + "\" : \"" + card.definition + "\" : " + card.errors + ") \n";
+        }
+
+        private static void askUser() {
+            List<Card> askList = new ArrayList<>(lista);
+            Scanner scannerFor = new Scanner(System.in);
+            String asks = "How many times to ask?";
+            System.out.println(asks);
+            log.add(asks);
+            int qtd = scannerFor.nextInt();
+            log.add("> " + qtd);
+
+            Random random = new Random();
+
+            for (int x = 0; x < qtd; x++) {
+                Scanner scanner = new Scanner(System.in);
+                int index = random.nextInt(lista.size());
+                Card card = askList.get(index);
+                log.add("> " + card.color);
+                String flog = "Print the definition of \"" + card.color + "\":";
+                System.out.println(flog);
+                log.add(flog);
+                String definition = scanner.nextLine();
+                log.add("> " + definition);
+
+                if (definition.equals(card.definition)) {
+                    String correct = "Correct answer";
+                    System.out.println(correct);
+                    log.add(correct);
+                } else {
+                    if (definitionList.contains(definition)) {
+                        Card name = askList.stream().filter(cardOf ->
+                                cardOf.definition.equals(definition))
+                                .collect(Collectors.toList()).get(0);
+                        String wrong = "Wrong answer. The correct one is \"" + card.definition
+                                + "\", you've just written the definition of \"" + name.getColor() + "\"";
+                        System.out.println(wrong);
+                        lista.remove(card);
+                        card.errors++;
+                        lista.add(card);
+
+                        log.add(wrong);
+                    } else {
+                        String notCard = "Wrong answer. The correct one is \"" + card.definition + "\".";
+                        System.out.println(notCard);
+                        log.add(notCard);
+                    }
+
+                    lista.remove(card);
+                    Integer error = card.errors + 1;
+                    card.setErrors(error);
+                    lista.add(card);
+                }
+            }
+
+            actions();
+        }
+
+        private static void verifyHardest() {
+            List<Card> hardest = new ArrayList<>();
+
+            if (lista.size() == 0) {
+                String noCard = "There are no cards with errors.";
+                System.out.println(noCard);
+                log.add(noCard);
+            } else {
+                Integer maximum = lista.stream().map(Card::getErrors).max(Integer::compareTo).get();
+                if (maximum != 0) {
+                    for (Card item : lista) {
+                        if (item.errors >= maximum) {
+                            hardest.add(item);
+                        }
+                    }
+                    String hard;
+                    if (hardest.size() == 1) {
+                        hard = "The hardest card is " + buildHardestString(hardest) + "You have " + maximum + " errors answering it.";
+                    } else {
+                        hard = "The hardest cards are " + buildHardestString(hardest) + "You have " + maximum + " errors answering them.";
+                    }
+                    System.out.println(hard);
+                    log.add(hard);
+                } else {
+                    String noCard = "There are no cards with errors.";
+                    System.out.println(noCard);
+                    log.add(noCard);
+                }
+            }
+
+
+            actions();
+        }
+
+        private static String buildHardestString(List<Card> cards) {
+            StringBuilder cardsString = new StringBuilder();
+
+            for (Card card : cards) {
+                cardsString.append("\"").append(card.color).append("\",");
+            }
+
+            String string = cardsString.toString();
+
+            return string.substring(0, string.length() - 1) + ".";
+        }
+
+        private static void resetStats() {
+            lista.forEach(element -> element.errors = 0);
+            String reset = "Card statistics has been reset.";
+            System.out.println(reset);
+            log.add(reset);
+            actions();
+        }
+
+        private static void log() {
+            Scanner scannerFor = new Scanner(System.in);
+            String flog = "File Name:";
+            System.out.println(flog);
+            log.add(flog);
+            String fileName = scannerFor.nextLine();
+            log.add("> " + flog);
+            fileName = fileName.contains(".txt") ? fileName : fileName + ".txt";
+
+            File file = new File(fileName);
+            try {
+                if (!file.isFile()) {
+                    boolean createFile = file.createNewFile();
+
+                    if (createFile) {
+                        canWriteLog(file);
+                    }
+                } else {
+                    canWriteLog(file);
+                }
+
+            } catch (IOException ioe) {
+                System.out.println(ioe.getMessage());
+                log.add(ioe.getMessage());
+            }
+        }
+
+        private static void canWriteLog(File file) {
+            if (file.canWrite()) {
+                writeLog(file);
+            }
+        }
+
+        private static void writeLog(File file) {
+            try {
+                FileWriter fileWriter = new FileWriter(file);
+                log.forEach(log -> {
+                    try {
+                        fileWriter.write(log + "\n");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+
+                fileWriter.close();
+                String flog = "The log has been saved";
+                System.out.println(flog);
+                log.add(flog);
+
+                listFiles.add(file.getName());
+                actions();
+            } catch (IOException ioe) {
+                System.out.println(ioe.getMessage());
+            }
+        }
+    }
+  learner_created: false
+- name: capitalsNew.txt
+  visible: true
+  learner_created: true
+- name: capitals.txt
+  visible: true
+  learner_created: true
+feedback_link: https://hyperskill.org/projects/44/stages/238/implement
+status: Solved
+record: -1

@@ -1,0 +1,141 @@
+type: edu
+custom_name: stage5
+files:
+- name: test/common/DialogClue.kt
+  visible: false
+  learner_created: false
+- name: test/FlashcardsTest.java
+  visible: false
+  learner_created: false
+- name: src/flashcards/Main.java
+  visible: true
+  text: |
+    package flashcards;
+
+    import java.awt.*;
+    import java.util.*;
+    import java.util.stream.Collectors;
+
+    public class Main {
+
+        static class Card {
+            String color;
+            String definition;
+
+            public Card(String color, String definition) {
+                this.color = color;
+                this.definition = definition;
+            }
+
+            public String getColor() {
+                return color;
+            }
+
+            public void setColor(String color) {
+                this.color = color;
+            }
+
+            public String getDefinition() {
+                return definition;
+            }
+
+            public void setDefinition(String definition) {
+                this.definition = definition;
+            }
+        }
+
+        public static void main(String[] args) {
+            Set<Card> lista = new LinkedHashSet<>();
+            HashMap<String, Set<String>> map = new HashMap<>();
+
+            Scanner scanner = new Scanner(System.in);
+            Set<String> colorList = new HashSet<>();
+            Set<String> definitionList = new HashSet<>();
+
+            System.out.println("Input the number of cards:");
+            int number = scanner.nextInt();
+
+            for (int x = 0; x < number; x++) {
+                String color = retriveCardValue(x + 1, map);
+                String definition = retriveDescriptionValue(x + 1, map);
+
+                Card card = new Card(color, definition);
+                lista.add(card);
+                colorList.add(color);
+                definitionList.add(definition);
+
+                map.put("color", colorList);
+                map.put("definition", definitionList);
+            }
+
+            for (Card card : lista) {
+                Scanner scannerFor = new Scanner(System.in);
+                System.out.println("Print the definition of \"" + card.getColor() + "\":");
+                String definition = scannerFor.nextLine();
+                verifyAnswer(card, definition, map, lista);
+            }
+        }
+
+        static boolean verifyContent(HashMap<String, Set<String>> map, String key, String value) {
+            return map.get(key).contains(value);
+        }
+
+        static String retriveCardValue(int index, HashMap<String, Set<String>> map) {
+
+            boolean tryAgain = true;
+            String color = null;
+            System.out.println("The card #" + index);
+            while (tryAgain) {
+                Scanner scannerFor = new Scanner(System.in);
+                color = scannerFor.nextLine();
+
+                if (map.containsKey("color") && verifyContent(map, "color", color)) {
+                    System.out.println("The card \"" + color + "\" already exists. Try again:");
+                } else {
+                    tryAgain = false;
+                }
+            }
+
+            return color;
+        }
+
+        static String retriveDescriptionValue(int index, HashMap<String, Set<String>> map) {
+
+            boolean tryAgain = true;
+            String definition = null;
+            System.out.println("The definition of the card #" + index);
+            while (tryAgain) {
+                Scanner scannerFor = new Scanner(System.in);
+                definition = scannerFor.nextLine();
+
+                if (map.containsKey("definition") && verifyContent(map, "definition", definition)) {
+                    System.out.println("The definition \"" + definition + "\" already exists. Try again:");
+                } else {
+                    tryAgain = false;
+                }
+            }
+
+            return definition;
+        }
+
+        static void verifyAnswer(Card card, String definition, HashMap<String, Set<String>> map, Set<Card> cards) {
+
+            System.out.println(definition.equals(card.getDefinition())
+                    ? "Correct answer."
+                    : buildWrong(card, definition, map, cards));
+        }
+
+        static String buildWrong(Card correct, String definition, HashMap<String, Set<String>> map, Set<Card> cards) {
+
+            if (map.get("definition").contains(definition)) {
+                Card card = cards.stream().filter(element -> element.definition.equals(definition)).collect(Collectors.toList()).get(0);
+                return "Wrong answer. The correct one is \"" + correct.getDefinition() + "\", you've just written the definition of \"" + card.color + "\".";
+            } else {
+                return "Wrong answer. The correct one is \"" + correct.getDefinition() + "\".";
+            }
+        }
+    }
+  learner_created: false
+feedback_link: https://hyperskill.org/projects/44/stages/236/implement
+status: Solved
+record: 5
